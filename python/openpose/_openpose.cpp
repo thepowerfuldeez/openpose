@@ -31,7 +31,7 @@
 #define default_logging_level 3
 #define default_output_resolution "-1x-1"
 #define default_net_resolution "-1x368"
-#define default_model_pose "COCO"
+#define default_model_pose "MPI"
 #define default_alpha_pose 0.6
 #define default_scale_gap 0.3
 #define default_scale_number 1
@@ -220,7 +220,7 @@ public:
 		resizeAndMergeCaffe->Reshape(caffeNetOutputBlobs, { heatMapsBlob.get() },
 			op::getPoseNetDecreaseFactor(poseModel), 1.f / 1.f, true,
 			0);
-		nmsCaffe->Reshape({ heatMapsBlob.get() }, { peaksBlob.get() }, op::getPoseMaxPeaks(poseModel),
+		nmsCaffe->Reshape({ heatMapsBlob.get() }, { peaksBlob.get() }, op::getPoseMaxPeaks(),
 			op::getPoseNumberBodyParts(poseModel), 0);
 		bodyPartConnectorCaffe->Reshape({ heatMapsBlob.get(), peaksBlob.get() });
 
