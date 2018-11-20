@@ -18,6 +18,8 @@ namespace op
          */
         explicit IpCameraReader(const std::string& cameraPath);
 
+        virtual ~IpCameraReader();
+
         std::vector<cv::Mat> getCameraMatrices();
 
         std::vector<cv::Mat> getCameraExtrinsics();
@@ -25,6 +27,11 @@ namespace op
         std::vector<cv::Mat> getCameraIntrinsics();
 
         std::string getNextFrameName();
+
+        inline bool isOpened() const
+        {
+            return VideoCaptureReader::isOpened();
+        }
 
         inline double get(const int capProperty)
         {

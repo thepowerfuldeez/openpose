@@ -1,6 +1,6 @@
-#include <thread>
 #include <openpose/utilities/check.hpp>
 #include <openpose/utilities/fastMath.hpp>
+#include <openpose/producer/headers.hpp>
 #include <openpose/producer/producer.hpp>
 
 namespace op
@@ -57,7 +57,7 @@ namespace op
             if (isOpened())
             {
                 // If ProducerFpsMode::OriginalFps, then force producer to keep the frame rate of the frames producer
-                // sources (e.g. a video)
+                // sources (e.g., a video)
                 keepDesiredFrameRate();
                 // Get frame
                 frames = getRawFrames();
@@ -106,7 +106,7 @@ namespace op
             else
             {
                 check(fpsMode == ProducerFpsMode::RetrievalFps || get(CV_CAP_PROP_FPS) > 0,
-                      "Selected to keep the source fps but get(CV_CAP_PROP_FPS) <= 0, i.e. the source did not set"
+                      "Selected to keep the source fps but get(CV_CAP_PROP_FPS) <= 0, i.e., the source did not set"
                       " its fps property.", __LINE__, __FUNCTION__, __FILE__);
                 mProducerFpsMode = {fpsMode};
             }
@@ -156,6 +156,15 @@ namespace op
                           "ProducerProperty::Rotation only implemented for {0, 90, 180, 270} degrees.",
                           __LINE__, __FUNCTION__, __FILE__);
                 }
+                else if (property == ProducerProperty::FrameStep)
+                {
+                    // Sanity check
+                    if (value < 1)
+                    {
+                        const auto message = "The frame step must be greater than 0 (`--frame_step`). Use 1 by default.";
+                        error(message, __LINE__, __FUNCTION__, __FILE__);
+                    }
+                }
 
                 // Common operation
                 mProperties[(unsigned char)property] = value;
@@ -184,9 +193,14 @@ namespace op
                 mNumberEmptyFrames = 0;
 
                 if (mType != ProducerType::ImageDirectory
-                      && (frame.cols != get(CV_CAP_PROP_FRAME_WIDTH) || frame.rows != get(CV_CAP_PROP_FRAME_HEIGHT)))
+                      && ((frame.cols != get(CV_CAP_PROP_FRAME_WIDTH) && get(CV_CAP_PROP_FRAME_WIDTH) > 0)
+                          || (frame.rows != get(CV_CAP_PROP_FRAME_HEIGHT) && get(CV_CAP_PROP_FRAME_HEIGHT) > 0)))
                 {
-                    log("Frame size changed. Returning empty frame.", Priority::Max, __LINE__, __FUNCTION__, __FILE__);
+                    log("Frame size changed. Returning empty frame.\nExpected vs. received sizes: "
+                        + std::to_string(get(CV_CAP_PROP_FRAME_WIDTH))
+                        + "x" + std::to_string(get(CV_CAP_PROP_FRAME_HEIGHT))
+                        + " vs. " + std::to_string(frame.cols) + "x" + std::to_string(frame.rows),
+                        Priority::Max, __LINE__, __FUNCTION__, __FILE__);
                     frame = cv::Mat();
                 }
             }
@@ -249,7 +263,7 @@ namespace op
             if (isOpened())
             {
                 // OpenCV closing issue: OpenCV goes in the range [1, get(CV_CAP_PROP_FRAME_COUNT) - 1] in some
-                // videos (i.e. there is a frame missing), mNumberEmptyFrames allows the program to be properly
+                // videos (i.e., there is a frame missing), mNumberEmptyFrames allows the program to be properly
                 // closed keeping the 0-index frame counting
                 if (mNumberEmptyFrames > 2
                     || (mType != ProducerType::FlirCamera && mType != ProducerType::IPCamera
@@ -334,6 +348,74 @@ namespace op
         catch (const std::exception& e)
         {
             error(e.what(), __LINE__, __FUNCTION__, __FILE__);
+        }
+    }
+
+    std::shared_ptr<Producer> createProducer(const ProducerType producerType, const std::string& producerString,
+                                             const Point<int>& cameraResolution, const double webcamFps,
+                                             const std::string& cameraParameterPath, const bool undistortImage,
+                                             const unsigned int imageDirectoryStereo)
+    {
+        try
+        {
+            log("", Priority::Low, __LINE__, __FUNCTION__, __FILE__);
+
+            // Directory of images
+            if (producerType == ProducerType::ImageDirectory)
+                return std::make_shared<ImageDirectoryReader>(
+                    producerString, imageDirectoryStereo, cameraParameterPath);
+            // Video
+            else if (producerType == ProducerType::Video)
+                return std::make_shared<VideoReader>(
+                    producerString, imageDirectoryStereo, cameraParameterPath);
+            // IP camera
+            else if (producerType == ProducerType::IPCamera)
+                return std::make_shared<IpCameraReader>(producerString);
+            // Flir camera
+            else if (producerType == ProducerType::FlirCamera)
+                return std::make_shared<FlirReader>(
+                    cameraParameterPath, cameraResolution, undistortImage, std::stoi(producerString));
+            // Webcam
+            else if (producerType == ProducerType::Webcam)
+            {
+                const auto webcamIndex = std::stoi(producerString);
+                auto cameraResolutionFinal = cameraResolution;
+                if (cameraResolutionFinal.x < 0 || cameraResolutionFinal.y < 0)
+                    cameraResolutionFinal = Point<int>{1280,720};
+                if (webcamIndex >= 0)
+                {
+                    const auto throwExceptionIfNoOpened = true;
+                    return std::make_shared<WebcamReader>(
+                        webcamIndex, cameraResolutionFinal, webcamFps, throwExceptionIfNoOpened);
+                }
+                else
+                {
+                    const auto throwExceptionIfNoOpened = false;
+                    std::shared_ptr<WebcamReader> webcamReader;
+                    for (auto index = 0 ; index < 10 ; index++)
+                    {
+                        webcamReader = std::make_shared<WebcamReader>(
+                            index, cameraResolutionFinal, webcamFps, throwExceptionIfNoOpened);
+                        if (webcamReader->isOpened())
+                        {
+                            log("Auto-detecting camera index... Detected and opened camera " + std::to_string(index)
+                                + ".", Priority::High);
+                            return webcamReader;
+                        }
+                    }
+                    error("No camera found.", __LINE__, __FUNCTION__, __FILE__);
+                }
+            }
+            // Unknown
+            else if (producerType != ProducerType::None)
+                error("Undefined Producer selected.", __LINE__, __FUNCTION__, __FILE__);
+            // None
+            return nullptr;
+        }
+        catch (const std::exception& e)
+        {
+            error(e.what(), __LINE__, __FUNCTION__, __FILE__);
+            return nullptr;
         }
     }
 }

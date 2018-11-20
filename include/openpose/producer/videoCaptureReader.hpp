@@ -10,7 +10,7 @@ namespace op
 {
     /**
      *  VideoCaptureReader is an abstract class to extract frames from a cv::VideoCapture source (video file,
-     * webcam stream, etc.). It has the basic and common functions of the cv::VideoCapture class (e.g. get, set, etc.).
+     * webcam stream, etc.). It has the basic and common functions of the cv::VideoCapture class (e.g., get, set, etc.).
      */
     class OP_API VideoCaptureReader : public Producer
     {
@@ -36,10 +36,7 @@ namespace op
 
         virtual std::string getNextFrameName() = 0;
 
-        inline bool isOpened() const
-        {
-            return mVideoCapture.isOpened();
-        }
+        virtual bool isOpened() const;
 
         void release();
 
@@ -51,6 +48,8 @@ namespace op
         virtual cv::Mat getRawFrame() = 0;
 
         virtual std::vector<cv::Mat> getRawFrames() = 0;
+
+        void resetWebcam(const int index, const bool throwExceptionIfNoOpened);
 
     private:
         cv::VideoCapture mVideoCapture;

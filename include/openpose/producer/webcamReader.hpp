@@ -3,7 +3,6 @@
 
 #include <atomic>
 #include <mutex>
-#include <thread>
 #include <openpose/core/common.hpp>
 #include <openpose/producer/videoCaptureReader.hpp>
 
@@ -27,7 +26,7 @@ namespace op
         explicit WebcamReader(const int webcamIndex = 0, const Point<int>& webcamResolution = Point<int>{},
                               const double fps = 30., const bool throwExceptionIfNoOpened = true);
 
-        ~WebcamReader();
+        virtual ~WebcamReader();
 
         std::vector<cv::Mat> getCameraMatrices();
 
@@ -37,11 +36,14 @@ namespace op
 
         std::string getNextFrameName();
 
+        bool isOpened() const;
+
         double get(const int capProperty);
 
         void set(const int capProperty, const double value);
 
     private:
+        const int mIndex;
         double mFps;
         long long mFrameNameCounter;
         bool mThreadOpened;
@@ -49,12 +51,18 @@ namespace op
         std::mutex mBufferMutex;
         std::atomic<bool> mCloseThread;
         std::thread mThread;
+        // Detect camera unplugged
+        double mLastNorm;
+        std::atomic<int> mDisconnectedCounter;
+        Point<int> mResolution;
 
         cv::Mat getRawFrame();
 
         std::vector<cv::Mat> getRawFrames();
 
         void bufferingThread();
+
+        bool reset();
 
         DELETE_COPY(WebcamReader);
     };

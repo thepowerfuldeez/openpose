@@ -12,9 +12,9 @@
 #include <caffe/caffe.hpp>
 #include <stdlib.h>
 
+#include <openpose/net/bodyPartConnectorCaffe.hpp>
 #include <openpose/net/nmsCaffe.hpp>
 #include <openpose/net/resizeAndMergeCaffe.hpp>
-#include <openpose/pose/bodyPartConnectorCaffe.hpp>
 #include <openpose/pose/poseParameters.hpp>
 #include <openpose/pose/enumClasses.hpp>
 #include <openpose/pose/poseExtractor.hpp>
@@ -45,7 +45,7 @@
 // Todo, have GPU Number, handle, OpenCL/CPU Cases
 OP_API class OpenPose {
 public:
-	std::unique_ptr<op::PoseExtractorCaffe> poseExtractorCaffe;
+    std::unique_ptr<op::PoseExtractorCaffe> poseExtractorCaffe;
 	std::unique_ptr<op::HandExtractorCaffe> handExtractorCaffe;
 	std::unique_ptr<op::HandDetector> handDetector;
 	std::unique_ptr<op::HandCpuRenderer> handRenderer;
@@ -53,17 +53,17 @@ public:
 	std::unique_ptr<op::FrameDisplayer> frameDisplayer;
 	std::unique_ptr<op::ScaleAndSizeExtractor> scaleAndSizeExtractor;
 
-	std::unique_ptr<op::ResizeAndMergeCaffe<float>> resizeAndMergeCaffe;
-	std::unique_ptr<op::NmsCaffe<float>> nmsCaffe;
-	std::unique_ptr<op::BodyPartConnectorCaffe<float>> bodyPartConnectorCaffe;
-	std::shared_ptr<caffe::Blob<float>> heatMapsBlob;
-	std::shared_ptr<caffe::Blob<float>> peaksBlob;
-	op::Array<float> mPoseKeypoints;
-	op::Array<float> mPoseScores;
-	op::PoseModel poseModel;
-	int mGpuID;
+    std::unique_ptr<op::ResizeAndMergeCaffe<float>> resizeAndMergeCaffe;
+    std::unique_ptr<op::NmsCaffe<float>> nmsCaffe;
+    std::unique_ptr<op::BodyPartConnectorCaffe<float>> bodyPartConnectorCaffe;
+    std::shared_ptr<caffe::Blob<float>> heatMapsBlob;
+    std::shared_ptr<caffe::Blob<float>> peaksBlob;
+    op::Array<float> mPoseKeypoints;
+    op::Array<float> mPoseScores;
+    op::PoseModel poseModel;
+    int mGpuID;
 
-	OpenPose(int FLAGS_logging_level = default_logging_level,
+    OpenPose(int FLAGS_logging_level = default_logging_level,
 		std::string FLAGS_output_resolution = default_output_resolution,
 		std::string FLAGS_net_resolution = default_net_resolution,
 		std::string FLAGS_model_pose = default_model_pose,
@@ -78,19 +78,19 @@ public:
 	) {
 		mGpuID = FLAGS_num_gpu_start;
 #ifdef USE_CUDA
-		caffe::Caffe::set_mode(caffe::Caffe::GPU);
-		caffe::Caffe::SetDevice(mGpuID);
-#elif USE_OPENCL
-		caffe::Caffe::set_mode(caffe::Caffe::GPU);
-		std::vector<int> devices;
-		const int maxNumberGpu = op::OpenCL::getTotalGPU();
-		for (auto i = 0; i < maxNumberGpu; i++)
-			devices.emplace_back(i);
-		caffe::Caffe::SetDevices(devices);
-		caffe::Caffe::SelectDevice(mGpuID, true);
-		op::OpenCL::getInstance(mGpuID, CL_DEVICE_TYPE_GPU, true);
+        caffe::Caffe::set_mode(caffe::Caffe::GPU);
+        caffe::Caffe::SetDevice(mGpuID);
+#elif defined USE_OPENCL
+        caffe::Caffe::set_mode(caffe::Caffe::GPU);
+        std::vector<int> devices;
+        const int maxNumberGpu = op::OpenCL::getTotalGPU();
+        for (auto i = 0; i < maxNumberGpu; i++)
+            devices.emplace_back(i);
+        caffe::Caffe::SetDevices(devices);
+        caffe::Caffe::SelectDevice(mGpuID, true);
+        op::OpenCL::getInstance(mGpuID, CL_DEVICE_TYPE_GPU, true);
 #else
-		caffe::Caffe::set_mode(caffe::Caffe::CPU);
+        caffe::Caffe::set_mode(caffe::Caffe::CPU);
 #endif
 		op::log("OpenPose Library Python Wrapper", op::Priority::High);
 		// ------------------------- INITIALIZATION -------------------------
@@ -248,43 +248,49 @@ public:
 		std::vector<caffe::Blob<float>*> heatMapsBlobs{ heatMapsBlob.get() };
 		std::vector<caffe::Blob<float>*> peaksBlobs{ peaksBlob.get() };
 #ifdef USE_CUDA
-		resizeAndMergeCaffe->Forward_gpu(caffeNetOutputBlobs, heatMapsBlobs); // ~5ms
-#elif USE_OPENCL
-		resizeAndMergeCaffe->Forward_ocl(caffeNetOutputBlobs, heatMapsBlobs); // ~5ms
+        resizeAndMergeCaffe->Forward_gpu(caffeNetOutputBlobs, heatMapsBlobs); // ~5ms
+#elif defined USE_OPENCL
+        resizeAndMergeCaffe->Forward_ocl(caffeNetOutputBlobs, heatMapsBlobs); // ~5ms
 #else
-		resizeAndMergeCaffe->Forward_cpu(caffeNetOutputBlobs, heatMapsBlobs); // ~5ms
+        resizeAndMergeCaffe->Forward_cpu(caffeNetOutputBlobs, heatMapsBlobs); // ~5ms
 #endif
 
-		nmsCaffe->setThreshold((float)poseExtractorCaffe->get(op::PoseProperty::NMSThreshold));
+        nmsCaffe->setThreshold((float)poseExtractorCaffe->get(op::PoseProperty::NMSThreshold));
 #ifdef USE_CUDA
-		nmsCaffe->Forward_gpu(heatMapsBlobs, peaksBlobs);// ~2ms
-#elif USE_OPENCL
-		nmsCaffe->Forward_ocl(heatMapsBlobs, peaksBlobs);// ~2ms
+        nmsCaffe->Forward_gpu(heatMapsBlobs, peaksBlobs);// ~2ms
+#elif defined USE_OPENCL
+        nmsCaffe->Forward_ocl(heatMapsBlobs, peaksBlobs);// ~2ms
 #else
-		nmsCaffe->Forward_cpu(heatMapsBlobs, peaksBlobs);// ~2ms
+        nmsCaffe->Forward_cpu(heatMapsBlobs, peaksBlobs);// ~2ms
 #endif
-		op::cudaCheck(__LINE__, __FUNCTION__, __FILE__);
+        op::cudaCheck(__LINE__, __FUNCTION__, __FILE__);
 
-		float mScaleNetToOutput = 1. / scaleInputToNetInputs[0];
-		bodyPartConnectorCaffe->setScaleNetToOutput(mScaleNetToOutput);
-		bodyPartConnectorCaffe->setInterMinAboveThreshold(
-			(float)poseExtractorCaffe->get(op::PoseProperty::ConnectInterMinAboveThreshold)
-		);
-		bodyPartConnectorCaffe->setInterThreshold((float)poseExtractorCaffe->get(op::PoseProperty::ConnectInterThreshold));
-		bodyPartConnectorCaffe->setMinSubsetCnt((int)poseExtractorCaffe->get(op::PoseProperty::ConnectMinSubsetCnt));
-		bodyPartConnectorCaffe->setMinSubsetScore((float)poseExtractorCaffe->get(op::PoseProperty::ConnectMinSubsetScore));
+        float mScaleNetToOutput = 1. / scaleInputToNetInputs[0];
+        bodyPartConnectorCaffe->setScaleNetToOutput(mScaleNetToOutput);
+        bodyPartConnectorCaffe->setInterMinAboveThreshold(
+            (float)poseExtractorCaffe->get(op::PoseProperty::ConnectInterMinAboveThreshold)
+        );
+        bodyPartConnectorCaffe->setInterThreshold((float)poseExtractorCaffe->get(op::PoseProperty::ConnectInterThreshold));
+        bodyPartConnectorCaffe->setMinSubsetCnt((int)poseExtractorCaffe->get(op::PoseProperty::ConnectMinSubsetCnt));
+        bodyPartConnectorCaffe->setMinSubsetScore((float)poseExtractorCaffe->get(op::PoseProperty::ConnectMinSubsetScore));
 
-		bodyPartConnectorCaffe->Forward_cpu({ heatMapsBlob.get(),
-			peaksBlob.get() },
-			mPoseKeypoints, mPoseScores);
-		poseKeypoints = mPoseKeypoints;
+#ifdef USE_CUDA
+        bodyPartConnectorCaffe->Forward_gpu({ heatMapsBlob.get(),
+            peaksBlob.get() },
+            mPoseKeypoints, mPoseScores);
+#else
+        bodyPartConnectorCaffe->Forward_cpu({ heatMapsBlob.get(),
+            peaksBlob.get() },
+            mPoseKeypoints, mPoseScores);
+#endif
+        poseKeypoints = mPoseKeypoints;
 
-		auto outputArray = cvMatToOpOutput.createArray(inputImage, scaleInputToOutput, outputResolution);
-		// Step 5 - Render poseKeypoints
-		poseRenderer->renderPose(outputArray, mPoseKeypoints, scaleInputToOutput);
-		// Step 6 - OpenPose output format to cv::Mat
-		displayImage = opOutputToCvMat.formatToCvMat(outputArray);
-	}
+        auto outputArray = cvMatToOpOutput.createArray(inputImage, scaleInputToOutput, outputResolution);
+        // Step 5 - Render poseKeypoints
+        poseRenderer->renderPose(outputArray, mPoseKeypoints, scaleInputToOutput);
+        // Step 6 - OpenPose output format to cv::Mat
+        displayImage = opOutputToCvMat.formatToCvMat(outputArray);
+    }
 };
 
 #ifdef __cplusplus
@@ -354,46 +360,46 @@ extern "C" {
 			memcpy(right, handOutput[1].getPtr(), rightHandSize);
 	}
     OP_EXPORT void poseFromHeatmap(c_OP op, unsigned char* img, size_t rows, size_t cols, unsigned char* displayImg, float* hm, int* size, float* ratios) {
-		OpenPose* openPose = (OpenPose*)op;
-		cv::Mat image(rows, cols, CV_8UC3, img);
-		cv::Mat displayImage(rows, cols, CV_8UC3, displayImg);
+        OpenPose* openPose = (OpenPose*)op;
+        cv::Mat image(rows, cols, CV_8UC3, img);
+        cv::Mat displayImage(rows, cols, CV_8UC3, displayImg);
 
-		std::vector<boost::shared_ptr<caffe::Blob<float>>> caffeNetOutputBlob;
+        std::vector<boost::shared_ptr<caffe::Blob<float>>> caffeNetOutputBlob;
 
-		for (int i = 0; i<size[0]; i++) {
-			boost::shared_ptr<caffe::Blob<float>> caffeHmPtr(new caffe::Blob<float>());
-			caffeHmPtr->Reshape(1, size[1], size[2] * ((float)ratios[i] / (float)ratios[0]), size[3] * ((float)ratios[i] / (float)ratios[0]));
-			float* startIndex = &hm[i*size[1] * size[2] * size[3]];
-			for (int d = 0; d<caffeHmPtr->shape()[1]; d++) {
-				for (int r = 0; r<caffeHmPtr->shape()[2]; r++) {
-					for (int c = 0; c<caffeHmPtr->shape()[3]; c++) {
-						int toI = d*caffeHmPtr->shape()[2] * caffeHmPtr->shape()[3] + r*caffeHmPtr->shape()[3] + c;
-						int fromI = d*size[2] * size[3] + r*size[3] + c;
-						caffeHmPtr->mutable_cpu_data()[toI] = startIndex[fromI];
-					}
-				}
-			}
-			caffeNetOutputBlob.emplace_back(caffeHmPtr);
-		}
+        for (int i = 0; i<size[0]; i++) {
+            boost::shared_ptr<caffe::Blob<float>> caffeHmPtr(new caffe::Blob<float>());
+            caffeHmPtr->Reshape(1, size[1], size[2] * ((float)ratios[i] / (float)ratios[0]), size[3] * ((float)ratios[i] / (float)ratios[0]));
+            float* startIndex = &hm[i*size[1] * size[2] * size[3]];
+            for (int d = 0; d<caffeHmPtr->shape()[1]; d++) {
+                for (int r = 0; r<caffeHmPtr->shape()[2]; r++) {
+                    for (int c = 0; c<caffeHmPtr->shape()[3]; c++) {
+                        int toI = d*caffeHmPtr->shape()[2] * caffeHmPtr->shape()[3] + r*caffeHmPtr->shape()[3] + c;
+                        int fromI = d*size[2] * size[3] + r*size[3] + c;
+                        caffeHmPtr->mutable_cpu_data()[toI] = startIndex[fromI];
+                    }
+                }
+            }
+            caffeNetOutputBlob.emplace_back(caffeHmPtr);
+        }
 
-		std::vector<op::Point<int>> imageSizes;
-		for (int i = 0; i<size[0]; i++) {
-			op::Point<int> point(cols*ratios[i], rows*ratios[i]);
-			imageSizes.emplace_back(point);
-		}
+        std::vector<op::Point<int>> imageSizes;
+        for (int i = 0; i<size[0]; i++) {
+            op::Point<int> point(cols*ratios[i], rows*ratios[i]);
+            imageSizes.emplace_back(point);
+        }
 
-		openPose->poseFromHeatmap(image, caffeNetOutputBlob, output, displayImage, imageSizes);
-		memcpy(displayImg, displayImage.ptr(), sizeof(unsigned char)*rows*cols * 3);
-		// Copy back kp size
-		if (output.getSize().size()) {
-			size[0] = output.getSize()[0];
-			size[1] = output.getSize()[1];
-			size[2] = output.getSize()[2];
-		}
-		else {
-			size[0] = 0; size[1] = 0; size[2] = 0;
-		}
-	}
+        openPose->poseFromHeatmap(image, caffeNetOutputBlob, output, displayImage, imageSizes);
+        memcpy(displayImg, displayImage.ptr(), sizeof(unsigned char)*rows*cols * 3);
+        // Copy back kp size
+        if (output.getSize().size()) {
+            size[0] = output.getSize()[0];
+            size[1] = output.getSize()[1];
+            size[2] = output.getSize()[2];
+        }
+        else {
+            size[0] = 0; size[1] = 0; size[2] = 0;
+        }
+    }
 
 #ifdef __cplusplus
 }

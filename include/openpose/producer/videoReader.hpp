@@ -8,7 +8,7 @@
 namespace op
 {
     /**
-     * VideoReader is a wrapper of the cv::VideoCapture class for video. It allows controlling a video (e.g. extracting
+     * VideoReader is a wrapper of the cv::VideoCapture class for video. It allows controlling a video (e.g., extracting
      * frames, setting resolution & fps, etc).
      */
     class OP_API VideoReader : public VideoCaptureReader
@@ -26,6 +26,8 @@ namespace op
         explicit VideoReader(const std::string& videoPath, const unsigned int imageDirectoryStereo = 1,
                              const std::string& cameraParameterPath = "");
 
+        virtual ~VideoReader();
+
         std::vector<cv::Mat> getCameraMatrices();
 
         std::vector<cv::Mat> getCameraExtrinsics();
@@ -33,6 +35,11 @@ namespace op
         std::vector<cv::Mat> getCameraIntrinsics();
 
         std::string getNextFrameName();
+
+        inline bool isOpened() const
+        {
+            return VideoCaptureReader::isOpened();
+        }
 
         double get(const int capProperty);
 
