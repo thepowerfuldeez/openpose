@@ -127,7 +127,8 @@ class OpenPose(object):
             self._libop.getHandSize(self.op, hand_size)
 
             hands_array = np.zeros(shape=(2, *hand_size), dtype=np.float32)
-            self._libop.getHandOutputs(self.op, hands_array[0], hands_array[1])
+            if hands_array.size > 0:
+                self._libop.getHandOutputs(self.op, hands_array[0], hands_array[1])
 
         if display and hands:
             return array, displayImage, hands_array
