@@ -65,15 +65,16 @@ namespace op
     {
         try
         {
-            if (poseModel == PoseModel::BODY_25E)
-                error("BODY_25E not implemented for CPU body connector.", __LINE__, __FUNCTION__, __FILE__);
+            if (poseModel != PoseModel::BODY_25 && poseModel != PoseModel::COCO_18
+                && poseModel != PoseModel::MPI_15 && poseModel != PoseModel::MPI_15_4)
+                error("Model not implemented for CPU body connector.", __LINE__, __FUNCTION__, __FILE__);
 
             // std::vector<std::pair<std::vector<int>, double>> refers to:
             //     - std::vector<int>: [body parts locations, #body parts found]
             //     - double: person subset score
             std::vector<std::pair<std::vector<int>, T>> peopleVector;
             const auto& mapIdx = getPoseMapIndex(poseModel);
-            const auto numberBodyPartsAndBkg = numberBodyParts + 1;
+            const auto numberBodyPartsAndBkg = numberBodyParts + (addBkgChannel(poseModel) ? 1 : 0);
             const auto vectorSize = numberBodyParts+1;
             const auto peaksOffset = 3*(maxPeaks+1);
             const auto heatMapOffset = heatMapSize.area();

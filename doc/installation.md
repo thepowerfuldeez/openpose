@@ -270,6 +270,8 @@ OpenPose displays the FPS in the basic GUI. However, more complex speed metrics 
 - Time measurement for 1 graphic card: The FPS will be the slowest time displayed in your terminal command line (as OpenPose is multi-threaded). Times are in milliseconds, so `FPS = 1000/millisecond_measurement`.
 - Time measurement for >1 graphic cards: Assuming `n` graphic cards, you will have to wait up to `n` x `F` frames to visualize each graphic card speed (as the frames are splitted among them). In addition, the FPS would be: `FPS = minFPS(speed_per_GPU/n, worst_time_measurement_other_than_GPUs)`. For < 4 GPUs, this is usually `FPS = speed_per_GPU/n`.
 
+Make sure that `wPoseExtractor` time is the slowest timing. Otherwise the input producer (video/webcam codecs issues with OpenCV, images too big, etc.) or the GUI display (use OpenGL support as detailed in [doc/speed_up_preserving_accuracy.md](./speed_up_preserving_accuracy.md)) might not be optimized.
+
 
 
 #### Faster GUI Display
@@ -286,6 +288,13 @@ Note: Check the differences between these models in [doc/faq.md#difference-betwe
 
 #### Python API
 To install the Python API, ensure that the `BUILD_PYTHON` flag is turned on while running CMake GUI and follow the standard installation steps. After the installation, check [doc/modules/python_module.md](./modules/python_module.md) for further details.
+
+Note: If you are in Windows, and you fail to install the required third party Python libraries, it might print an error similar to: `Exception: Error: OpenPose library could not be found. Did you enable BUILD_PYTHON in CMake and have this Python script in the right folder?`. From GitHub issue #941:
+```
+I had a similar issue with Visual Studio (VS). I am pretty sure that the issue is that while you are compiling OpenPose in VS, it tries to import cv2 (python-opencv) and it fails. So make sure that if you open cmd.exe and run python, you can actually import cv2 without errors. I could not, but I had cv2 installed in a IPython environment (Anaconda), so I activated that environment, and then ran (change this to adapt it to your VS version and location of OpenPose.sln):
+
+C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\MSBuild.exe C:\path\to\OpenPose.sln
+```
 
 
 
@@ -304,7 +313,7 @@ export MKL_NUM_THREADS="8"
 export OMP_NUM_THREADS="8"
 ```
 
-Do note that increasing the number of threads results in more memory use. You can check the [doc/faq.md#speed-up-memory-reduction-and-benchmark](./faq.md#speed-up-memory-reduction-and-benchmark) for more information about speed and memory requirements in several CPUs and GPUs.
+Do note that increasing the number of threads results in more memory use. You can check the [doc/speed_up_preserving_accuracy.md](./speed_up_preserving_accuracy.md) for more information about speed and memory requirements in several CPUs and GPUs.
 
 
 

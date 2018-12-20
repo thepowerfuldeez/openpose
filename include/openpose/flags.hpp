@@ -33,10 +33,6 @@ DEFINE_int32(camera,                    -1,             "The camera index for cv
 DEFINE_string(camera_resolution,        "-1x-1",        "Set the camera resolution (either `--camera` or `--flir_camera`). `-1x-1` will use the"
                                                         " default 1280x720 for `--camera`, or the maximum flir camera resolution available for"
                                                         " `--flir_camera`");
-#endif // OPENPOSE_FLAGS_DISABLE_PRODUCER
-DEFINE_double(camera_fps,               30.0,           "Frame rate for the webcam (also used when saving video). Set this value to the minimum"
-                                                        " value between the OpenPose displayed speed and the webcam real frame rate.");
-#ifndef OPENPOSE_FLAGS_DISABLE_PRODUCER
 DEFINE_string(video,                    "",             "Use a video file instead of the camera. Use `examples/media/video.avi` for our default"
                                                         " example video.");
 DEFINE_string(image_dir,                "",             "Process a directory of images. Use `examples/media/` for our default example folder with 20"
@@ -56,10 +52,11 @@ DEFINE_int32(frame_rotate,              0,              "Rotate each frame, 4 po
 DEFINE_bool(frames_repeat,              false,          "Repeat frames when finished.");
 DEFINE_bool(process_real_time,          false,          "Enable to keep the original source frame rate (e.g., for video). If the processing time is"
                                                         " too long, it will skip frames. If it is too fast, it will slow it down.");
-DEFINE_string(camera_parameter_folder,  "models/cameraParameters/flir/", "String with the folder where the camera parameters are located.");
-DEFINE_bool(frame_keep_distortion,      false,          "If false (default), it will undistortionate the image based on the"
-                                                        " `camera_parameter_folder` camera parameters; if true, it will not undistortionate, i.e.,"
-                                                        " it will leave it as it is.");
+DEFINE_string(camera_parameter_path,    "models/cameraParameters/flir/", "String with the folder where the camera parameters are located. If there"
+                                                        " is only 1 XML file (for single video, webcam, or images from the same camera), you must"
+                                                        " specify the whole XML file path (ending in .xml).");
+DEFINE_bool(frame_undistort,            false,          "If false (default), it will not undistort the image, if true, it will undistortionate them"
+                                                        " based on the camera parameters found in `camera_parameter_path`");
 #endif // OPENPOSE_FLAGS_DISABLE_PRODUCER
 // OpenPose
 DEFINE_string(model_folder,             "models/",      "Folder path (absolute or relative) where the models (pose, face, ...) are located.");
@@ -84,6 +81,9 @@ DEFINE_int32(number_people_max,         -1,             "This parameter will lim
                                                         " highly occluded people. -1 will keep them all.");
 DEFINE_bool(maximize_positives,         false,          "It reduces the thresholds to accept a person candidate. It highly increases both false and"
                                                         " true positives. I.e., it maximizes average recall but could harm average precision.");
+DEFINE_double(fps_max,                  -1.,            "Maximum processing frame rate. By default (-1), OpenPose will process frames as fast as"
+                                                        " possible. Example usage: If OpenPose is displaying images too quickly, this can reduce"
+                                                        " the speed so the user can analyze better each frame from the GUI.");
 // OpenPose Body Pose
 DEFINE_bool(body_disable,               false,          "Disable body keypoint detection. Option only possible for faster (but less accurate) face"
                                                         " keypoint detection.");
@@ -96,7 +96,7 @@ DEFINE_string(net_resolution,           "-1x368",       "Multiples of 16. If it 
                                                         " input value. E.g., the default `-1x368` is equivalent to `656x368` in 16:9 resolutions,"
                                                         " e.g., full HD (1980x1080) and HD (1280x720) resolutions.");
 DEFINE_int32(scale_number,              1,              "Number of scales to average.");
-DEFINE_double(scale_gap,                0.3,            "Scale gap between scales. No effect unless scale_number > 1. Initial scale is always 1."
+DEFINE_double(scale_gap,                0.25,           "Scale gap between scales. No effect unless scale_number > 1. Initial scale is always 1."
                                                         " If you want to change the initial scale, you actually want to multiply the"
                                                         " `net_resolution` by your desired initial scale.");
 // OpenPose Body Pose Heatmaps and Part Candidates
@@ -149,9 +149,9 @@ DEFINE_bool(3d,                         false,          "Running OpenPose 3-D re
                                                         " fail.");
 DEFINE_int32(3d_min_views,              -1,             "Minimum number of views required to reconstruct each keypoint. By default (-1), it will"
                                                         " require all the cameras to see the keypoint in order to reconstruct it.");
-DEFINE_int32(3d_views,                  1,              "Complementary option to `--image_dir` or `--video`. OpenPose will read as many images per"
+DEFINE_int32(3d_views,                  -1,             "Complementary option for `--image_dir` or `--video`. OpenPose will read as many images per"
                                                         " iteration, allowing tasks such as stereo camera processing (`--3d`). Note that"
-                                                        " `--camera_parameters_folder` must be set. OpenPose must find as many `xml` files in the"
+                                                        " `--camera_parameter_path` must be set. OpenPose must find as many `xml` files in the"
                                                         " parameter folder as this number indicates.");
 // Extra algorithms
 DEFINE_bool(identification,             false,          "Experimental, not available yet. Whether to enable people identification across frames.");
@@ -214,7 +214,13 @@ DEFINE_string(write_images_format,      "png",          "File extension and form
                                                         " function cv::imwrite for all compatible extensions.");
 DEFINE_string(write_video,              "",             "Full file path to write rendered frames in motion JPEG video format. It might fail if the"
                                                         " final path does not finish in `.avi`. It internally uses cv::VideoWriter. Flag"
-                                                        " `camera_fps` controls FPS.");
+                                                        " `write_video_fps` controls FPS.");
+DEFINE_double(write_video_fps,          -1.,            "Frame rate for the recorded video. By default, it will try to get the input frames producer"
+                                                        " frame rate (e.g., input video or webcam frame rate). If the input frames producer does not"
+                                                        " have a set FPS (e.g., image_dir or webcam if OpenCV not compiled with its support), set"
+                                                        " this value accordingly (e.g., to the frame rate displayed by the OpenPose GUI).");
+DEFINE_string(write_video_3d,           "",             "Analogous to `--write_video`, but applied to the 3D output.");
+DEFINE_string(write_video_adam,         "",             "Experimental, not available yet. Analogous to `--write_video`, but applied to Adam model.");
 DEFINE_string(write_json,               "",             "Directory to write OpenPose output in JSON format. It includes body, hand, and face pose"
                                                         " keypoints (2-D and 3-D), as well as pose candidates (if `--part_candidates` enabled).");
 DEFINE_string(write_coco_json,          "",             "Full file path to write people pose data with JSON COCO validation format.");
@@ -231,8 +237,6 @@ DEFINE_string(write_keypoint,           "",             "(Deprecated, use `write
 DEFINE_string(write_keypoint_format,    "yml",          "(Deprecated, use `write_json`) File extension and format for `write_keypoint`: json, xml,"
                                                         " yaml & yml. Json not available for OpenCV < 3.0, use `write_json` instead.");
 // Result Saving - Extra Algorithms
-DEFINE_string(write_video_adam,         "",             "Experimental, not available yet. E.g., `~/Desktop/adamResult.avi`. Flag `camera_fps`"
-                                                        " controls FPS.");
 DEFINE_string(write_bvh,                "",             "Experimental, not available yet. E.g., `~/Desktop/mocapResult.bvh`.");
 // UDP Communication
 DEFINE_string(udp_host,                 "",             "Experimental, not available yet. IP for UDP communication. E.g., `192.168.0.1`.");

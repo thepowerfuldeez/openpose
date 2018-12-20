@@ -55,7 +55,7 @@ OpenPose Library - Release Notes
     7. Rendering threshold for pose, face and hands becomes user-configurable.
     8. Check() functions give more feedback.
     9. WCocoJsonSaver finished and removed its 3599-image limit.
-    10. Added `--camera_fps` so generated video will use that frame rate.
+    10. Added `--camera_fps` so generated video (`--write_video`) will use that frame rate.
     11. Reduced the number of printed information messages. Default logging priority threshold increased to Priority::Max.
     12. GFlags to OpenPose configuration parameters reader moved from each demo to utilities/flagsToOpenPose.
     13. Nms classes do not use `numberParts` for `Reshape`, they deduce the value.
@@ -195,8 +195,7 @@ OpenPose Library - Release Notes
     23. OpenPose small GUI shows the frame number w.r.t. the original producer, rather than the frame id. E.g., if video is started at frame 30, OpenPose will display 30 rather than 0 in the first frame.
     24. OpenPose GUI: 'l' and 'k' functionality swapped.
     25. 3-D reconstruction module: Added flag `--3d_min_views` to select minimum number of cameras required for 3-D reconstruction.
-    26. Flag `--camera_fps` also applies to recorded video (`--write_video`).
-    27. Flir camera producer `n` times faster for `n` cameras (multi-threaded). If the number of cameras is greater than the number of the computer threads, the speed up might not be exactly `n` times.
+    26. Flir camera producer `n` times faster for `n` cameras (multi-threaded). If the number of cameras is greater than the number of the computer threads, the speed up might not be exactly `n` times.
 2. Functions or parameters renamed:
     1. Flag `no_display` renamed as `display`, able to select between `NoDisplay`, `Display2D`, `Display3D`, and `DisplayAll`.
     2. 3-D reconstruction demo is now inside the OpenPose demo binary.
@@ -289,6 +288,17 @@ OpenPose Library - Release Notes
     18. Removed warnings from Spinnaker SDK at compiling time.
     19. All bash scripts incorporate `#!/bin/bash` to tell the terminal that they are bash scripts.
     20. Added flag `--verbose` to plot the progress.
+    21. Added find_package(Protobuf) to allow specific versions of Protobuf.
+    22. Examples do not end in core dumped if an OpenPose exception occurred during initialization, but it is rather closed returning -1. However, it will still results in core dumped if the exception occurs during multi-threading execution.
+    23. Video (`--write_video`) can be generated from images (`--image_dir`), as long as they maintain the same resolution.
+    24. Added `--fps_max` flag to limit the maximum processing frame rate of OpenPose (useful to display results at a maximum desired speed).
+    25. Frame undistortion can be applied not only to FLIR cameras, but also to all other input sources (image, webcam, video, etc.).
+    26. Calibration improvements:
+        1. Improved chessboard orientation detection, more robust and less errors.
+        2. Triangulation functions (triangulate and triangulateWithOptimization) public, so calibration can use them for bundle adjustment.
+        3. Added bundle adjustment refinement for camera extrinsic calibration.
+        4. Added `CameraMatrixInitial` field into the XML calibration files to keep the information of the original camera extrinsic parameters when bundle adjustment is run.
+    27. Video with the 3D output can be saved with the new `--write_video_3d` flag.
 2. Functions or parameters renamed:
     1. By default, python example `tutorial_developer/python_2_pose_from_heatmaps.py` was using 2 scales starting at -1x736, changed to 1 scale at -1x368.
     2. WrapperStructPose default parameters changed to match those of the OpenPose demo binary.
@@ -297,12 +307,18 @@ OpenPose Library - Release Notes
     5. Previously hardcoded `COCO_CHALLENGE` variable turned into user configurable flag `--maximize_positives`.
     6. Removed old COCO 2014 validation scripts.
     7. WrapperStructOutput split into WrapperStructOutput and WrapperStructGui.
+    8. Replaced `--camera_fps` flag by `--write_video_fps`, given that it was a confusing name: It did not affect the webcam FPS, but only the FPS of the output video. In addition, default value changed from 30 to -1.
+    9. Renamed `--frame_keep_distortion` as `--frame_undistort`, which performs the opposite operation (the default value has been also changed to the opposite).
+    10. Renamed `--camera_parameter_folder` as `--camera_parameter_path` because it could also take a whole XML file path rather than its parent folder.
+    11. Default value of flag `--scale_gap` changed from 0.3 to 0.25.
 3. Main bugs fixed:
     1. CMake-GUI was forcing to Release mode, allowed Debug modes too.
     2. NMS returns in index 0 the number of found peaks. However, while the number of peaks was truncated to a maximum of 127, this index 0 was saving the real number instead of the truncated one.
     3. Template functions could not be imported in Windows for projects using the OpenPose library DLL.
     4. Function `scaleKeypoints2d` was not working if any of the scales was 1 (e.g., fail if scaleX = 1 but scaleY != 1, or if any offset was not 0).
     5. Fixed bug in `KeepTopNPeople` that could provoke segmentation fault for `number_people_max` > 1.
+    6. Camera parameter reader can now take folder paths even if they are not finished in `/` (e.g., `~/Desktop/` worked but `~/Desktop` did not).
+    7. 3D module: If the image area was smaller than HD resolution image area, the 3D keypoints were not properly estimated.
 
 
 

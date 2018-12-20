@@ -37,6 +37,7 @@
 
 
 ## Latest Features
+- Dec 2018: [**Foot dataset and new paper released**](https://cmu-perceptual-computing-lab.github.io/foot_keypoint_dataset)!
 - Sep 2018: [**Experimental single-person tracker**](doc/quick_start.md#tracking) for further speed up or visual smoothing!
 - Jun 2018: [**Combined body-foot model released! 40% faster and 5% more accurate**](doc/installation.md)!
 - Jun 2018: [**Python API**](doc/modules/python_module.md) released!
@@ -76,6 +77,13 @@ For further details, check [all released features](doc/released_features.md) and
     <img src="doc/media/dance.gif", width="360">
 </p>
 
+### Runtime Analysis
+Inference time comparison between the 3 available pose estimation libraries: OpenPose, Alpha-Pose (fast Pytorch version), and Mask R-CNN:
+<p align="center">
+    <img src="doc/media/openpose_vs_competition.png", width="360">
+</p>
+This analysis was performed using the same images for each algorithm and a batch size of 1. Each analysis was repeated 1000 times and then averaged. This was all performed on a system with a Nvidia 1080 Ti and CUDA 8. Megvii (Face++) and MSRA GitHub repositories were excluded because they only provide pose estimation results given a cropped person. However, they suffer the same problem than Alpha-Pose and Mask R-CNN, their runtimes grow linearly with the number of people.
+
 
 
 ## Contents
@@ -86,10 +94,11 @@ For further details, check [all released features](doc/released_features.md) and
 5. [Quick Start](#quick-start)
 6. [Output](#output)
 7. [Speeding Up OpenPose and Benchmark](#speeding-up-openpose-and-benchmark)
-8. [Send Us Failure Cases and Feedback!](#send-us-failure-cases-and-feedback)
-9. [Authors and Contributors](#authors-and-contributors)
-10. [Citation](#citation)
-11. [License](#license)
+8. [Foot Dataset](#foot-dataset)
+9. [Send Us Failure Cases and Feedback!](#send-us-failure-cases-and-feedback)
+10. [Authors and Contributors](#authors-and-contributors)
+11. [Citation](#citation)
+12. [License](#license)
 
 
 
@@ -131,7 +140,12 @@ Output (format, keypoint index ordering, etc.) in [doc/output.md](doc/output.md)
 
 
 ## Speeding Up OpenPose and Benchmark
-Check the OpenPose Benchmark as well as some hints to speed up and/or reduce the memory requirements for OpenPose on [doc/faq.md#speed-up-memory-reduction-and-benchmark](doc/faq.md#speed-up-memory-reduction-and-benchmark).
+Check the OpenPose Benchmark as well as some hints to speed up and/or reduce the memory requirements for OpenPose on [doc/speed_up_preserving_accuracy.md](doc/speed_up_preserving_accuracy.md).
+
+
+
+## Foot Dataset
+Check the [foot dataset website](https://cmu-perceptual-computing-lab.github.io/foot_keypoint_dataset/) and new [OpenPose paper](https://arxiv.org/abs/1812.08008) for more information.
 
 
 
@@ -161,6 +175,13 @@ We would also like to thank all the people who helped OpenPose in any way. The m
 ## Citation
 Please cite these papers in your publications if it helps your research (the face keypoint detector was trained using the procedure described in [Simon et al. 2017] for hands):
 
+    @inproceedings{cao2018openpose,
+      author = {Zhe Cao and Gines Hidalgo and Tomas Simon and Shih-En Wei and Yaser Sheikh},
+      booktitle = {arXiv preprint arXiv:1812.08008},
+      title = {Open{P}ose: realtime multi-person 2{D} pose estimation using {P}art {A}ffinity {F}ields},
+      year = {2018}
+    }
+
     @inproceedings{cao2017realtime,
       author = {Zhe Cao and Tomas Simon and Shih-En Wei and Yaser Sheikh},
       booktitle = {CVPR},
@@ -184,6 +205,7 @@ Please cite these papers in your publications if it helps your research (the fac
 
 Links to the papers:
 
+- [OpenPose: Realtime Multi-Person 2D Pose Estimation using Part Affinity Fields](https://arxiv.org/abs/1812.08008)
 - [Realtime Multi-Person 2D Pose Estimation using Part Affinity Fields](https://arxiv.org/abs/1611.08050)
 - [Hand Keypoint Detection in Single Images using Multiview Bootstrapping](https://arxiv.org/abs/1704.07809)
 - [Convolutional Pose Machines](https://arxiv.org/abs/1602.00134)
